@@ -7,15 +7,63 @@
     <script src="pdfkit.js"></script>
     <script src="blobstream.js"></script>
     <script>
+        function getImage(file)
+        {
+            let img = new Image();
+            return new Promise((resolve, reject) => {
+                img.src = URL.createObjectURL(file);
+                img.onload = () => {
+                    resolve(img);
+                }
+                img.onerror = (e) => {
+                    reject(e);
+                }
+            })
+        }
+
+        function getWidthHeight(pageWidth, pageHeight, imgWidth, imgHeight)
+        {
+            let f = pageWidth/imgWidth;
+            let width = pageWidth;
+            let height = Math.round(imgHeight*f);
+
+            if (height > pageHeight)
+            {
+                f = pageHeight/imgHeight;
+                height = pageHeight;
+                width = Math.round(imgWidth*f);
+            }
+            return [ width, height ];
+        }
+
         async function addFileToPDF(doc, file)
         {
             let buffer = await file.arrayBuffer();
+            let img = await getImage(file);
+            let x = 0, y = 0;
+            let width = 0, height = 0;
+            let pageWidth = 595, pageHeight = 842;
+
             doc.addPage({ margins: { top: 0, bottom: 0, left: 0, right: 0 }, size: "a4" })
-            doc.image(buffer, {
-                fit: [ 595, 842 ],
-                align: 'center',
-                valign: 'center'
+            doc.save();
+            if (img.width > img.height)
+            {
+                doc.rotate(90, {origin : [0, 0]});
+                y = -pageWidth;
+
+                [ pageWidth, pageHeight ] = [ pageHeight, pageWidth ]
+            }
+
+            [ width, height ] = getWidthHeight(pageWidth, pageHeight, img.width, img.height);
+            if (width < pageWidth)
+                x += Math.round((pageWidth-width)/2);
+            if (height < pageHeight)
+                y += Math.round((pageHeight-height)/2);
+
+            doc.image(buffer, x, y, {
+                width: width, height: height,
             });
+            doc.restore();
         }
 
         async function filesSelected(evt)
