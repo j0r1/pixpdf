@@ -10,9 +10,9 @@
         async function addFileToPDF(doc, file)
         {
             let buffer = await file.arrayBuffer();
-            doc.addPage({ margins: { top: 0, bottom: 0, left: 0, right: 0 }, width: 595, height: 842 })
+            doc.addPage({ margins: { top: 0, bottom: 0, left: 0, right: 0 }, size: "a4" })
             doc.image(buffer, {
-                fit: [595, 842],
+                fit: [ 595, 842 ],
                 align: 'center',
                 valign: 'center'
             });
