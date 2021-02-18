@@ -4,22 +4,9 @@
     <meta charset="utf-8">
     <title>PixPDF</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="pdfkit.js"></script>
-    <script src="blobstream.js"></script>
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.js"></script>
     <script>
-        function getImage(file)
-        {
-            let img = new Image();
-            return new Promise((resolve, reject) => {
-                img.src = URL.createObjectURL(file);
-                img.onload = () => {
-                    resolve(img);
-                }
-                img.onerror = (e) => {
-                    reject(e);
-                }
-            })
-        }
+        const A4Size = [ 595, 842 ]
 
         function getWidthHeight(pageWidth, pageHeight, imgWidth, imgHeight)
         {
@@ -38,55 +25,66 @@
 
         async function addFileToPDF(doc, file)
         {
-            let buffer = await file.arrayBuffer();
-            let img = await getImage(file);
-            let x = 0, y = 0;
-            let width = 0, height = 0;
-            let pageWidth = 595, pageHeight = 842;
+            const page = doc.addPage(A4Size);
+            const buffer = await file.arrayBuffer();
+            let img = null;
 
-            doc.addPage({ margins: { top: 0, bottom: 0, left: 0, right: 0 }, size: "a4" })
-            doc.save();
-            if (img.width > img.height)
+            if (file.type == "image/jpeg")
+                img = await doc.embedJpg(buffer);
+            else if (file.type == "image/png")
+                img = await doc.embedPng(buffer);
+            else
             {
-                doc.rotate(90, {origin : [0, 0]});
-                y = -pageWidth;
-
-                [ pageWidth, pageHeight ] = [ pageHeight, pageWidth ]
+                // TODO: add pdf
+                console.log("Unexpected file type");
             }
 
-            [ width, height ] = getWidthHeight(pageWidth, pageHeight, img.width, img.height);
-            if (width < pageWidth)
-                x += Math.round((pageWidth-width)/2);
-            if (height < pageHeight)
-                y += Math.round((pageHeight-height)/2);
+            const dims = img.scale(1);
+            let x = 0, y = 0, width = 0, height = 0;
+            let deg = 0;
+            let [ pageWidth, pageHeight ] = A4Size;
+            
+            if (dims.width > dims.height)
+            {
+                deg = -90;
+                y = pageHeight;
+                [ width, height ] = getWidthHeight(pageHeight, pageWidth, dims.width, dims.height);
+                
+                if (height < pageWidth)
+                    x += Math.round((pageWidth-height)/2)
+                if (width < pageHeight)
+                    y -= Math.round((pageHeight-width)/2);
+            }
+            else
+            {
+                [ width, height ] = getWidthHeight(pageWidth, pageHeight, dims.width, dims.height);
+                if (width < pageWidth)
+                    x += Math.round((pageWidth-width)/2);
+                if (height < pageHeight)
+                    y += Math.round((pageHeight-height)/2);
+            }
 
-            doc.image(buffer, x, y, {
-                width: width, height: height,
-            });
-            doc.restore();
+            page.drawImage(img, {
+                x: x,
+                y: y,
+                width: width,
+                height: height,
+                rotate: PDFLib.degrees(deg),
+                opacity: 1
+            })
         }
 
         async function filesSelected(evt)
         {
-            let doc = new PDFDocument({ autoFirstPage: false});
-            let stream = doc.pipe(blobStream());
-
+            const doc = await PDFLib.PDFDocument.create();
             const input = document.getElementById("input");
             const files = input.files;
             for (let f of files)
                 await addFileToPDF(doc, f);
 
-            doc.end();
-            stream.on('finish', function() {
-                // get a blob you can do whatever you like with
-                // const blob = stream.toBlob('application/pdf');
-        
-                // or get a blob URL for display in the browser
-                const url = stream.toBlobURL('application/pdf');
-        
-                let iframe = document.getElementById("iframe");
-                iframe.src = url;
-            });
+            const url = await doc.saveAsBase64({ dataUri: true });
+            const iframe = document.getElementById("iframe");
+            iframe.src = url;
         }
 
         function onload()
