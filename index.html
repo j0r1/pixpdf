@@ -25,20 +25,44 @@
 
         async function addFileToPDF(doc, file)
         {
-            const page = doc.addPage(A4Size);
             const buffer = await file.arrayBuffer();
             let img = null;
 
             if (file.type == "image/jpeg")
+            {
                 img = await doc.embedJpg(buffer);
+                await addImageToPDF(doc, img);
+            }
             else if (file.type == "image/png")
+            {
                 img = await doc.embedPng(buffer);
+                await addImageToPDF(doc, img);
+            }
+            else if (file.type == "application/pdf")
+            {
+                await addPDFToPDF(doc, buffer);
+            }
             else
             {
-                // TODO: add pdf
                 console.log("Unexpected file type");
             }
+        }
 
+        async function addPDFToPDF(doc, buffer)
+        {
+            const baseDoc = await PDFLib.PDFDocument.load(buffer);
+            const numPages = baseDoc.getPageCount();
+
+            for (let i = 0 ; i < numPages ; i++)
+            {
+                const [ p ] = await doc.copyPages(baseDoc, [i]);
+                doc.addPage(p);
+            }
+        }
+
+        async function addImageToPDF(doc, img)
+        {
+            const page = doc.addPage(A4Size);
             const dims = img.scale(1);
             let x = 0, y = 0, width = 0, height = 0;
             let deg = 0;
@@ -76,15 +100,21 @@
 
         async function filesSelected(evt)
         {
-            const doc = await PDFLib.PDFDocument.create();
-            const input = document.getElementById("input");
-            const files = input.files;
-            for (let f of files)
-                await addFileToPDF(doc, f);
+            try {
+                const doc = await PDFLib.PDFDocument.create();
+                const input = document.getElementById("input");
+                const files = input.files;
+                for (let f of files)
+                    await addFileToPDF(doc, f);
 
-            const url = await doc.saveAsBase64({ dataUri: true });
-            const iframe = document.getElementById("iframe");
-            iframe.src = url;
+                const url = await doc.saveAsBase64({ dataUri: true });
+                const iframe = document.getElementById("iframe");
+                iframe.src = url;
+            }
+            catch(e) {
+                console.log("Exception!");
+                console.log(e);
+            }
         }
 
         function onload()
@@ -102,7 +132,7 @@
 </head>
 <body onload="onload()">
 
-    <p>Load files: <input type="file" accept="image/png, image/jpeg" id="input" multiple></p>
+    <p>Load files: <input type="file" accept="image/png, image/jpeg, application/pdf" id="input" multiple></p>
     <p><iframe id="iframe" style="width: 99%; height: 95vh;"></iframe></p>
 </body>
 </html>
