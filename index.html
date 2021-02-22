@@ -107,7 +107,9 @@
                 for (let f of files)
                     await addFileToPDF(doc, f);
 
-                const url = await doc.saveAsBase64({ dataUri: true });
+                const data = await doc.save();
+                const blob = new Blob([data.buffer], { "type": "application/pdf"});
+                const url = URL.createObjectURL(blob);
                 const iframe = document.getElementById("iframe");
                 iframe.src = url;
             }
