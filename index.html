@@ -1,62 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="utf-8">
-    <title>ImagesToPDF</title>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="pdfkit.js"></script>
-    <script src="blobstream.js"></script>
-    <script>
-        async function addFileToPDF(doc, file)
-        {
-            let buffer = await file.arrayBuffer();
-            doc.addPage({ margins: { top: 0, bottom: 0, left: 0, right: 0 }, width: 595, height: 842 })
-            doc.image(buffer, {
-                fit: [595, 842],
-                align: 'center',
-                valign: 'center'
-            });
-        }
-
-        async function filesSelected(evt)
-        {
-            let doc = new PDFDocument({ autoFirstPage: false});
-            let stream = doc.pipe(blobStream());
-
-            const input = document.getElementById("input");
-            const files = input.files;
-            for (let f of files)
-                await addFileToPDF(doc, f);
-
-            doc.end();
-            stream.on('finish', function() {
-                // get a blob you can do whatever you like with
-                // const blob = stream.toBlob('application/pdf');
-        
-                // or get a blob URL for display in the browser
-                const url = stream.toBlobURL('application/pdf');
-        
-                let iframe = document.getElementById("iframe");
-                iframe.src = url;
-            });
-        }
-
-        function onload()
-        {
-            const input = document.getElementById("input");
-            input.addEventListener("change", filesSelected, false);
-        }
-        </script>
-        <style>
-            body, html {
-                width:99%;
-                height:100%;
-            }
-        </style>
+    <meta http-equiv="refresh" content="0; url=https://j0r1.codeberg.page/pixpdf/">
+    <title>Redirecting...</title>
 </head>
-<body onload="onload()">
-
-    <p>Load files: <input type="file" accept="image/png, image/jpeg" id="input" multiple></p>
-    <p><iframe id="iframe" style="width: 99%; height: 95vh;"></iframe></p>
+<body>
+    <p>If you are not redirected automatically, <a href="https://j0r1.codeberg.page/pixpdf/">click here</a>.</p>
 </body>
 </html>
